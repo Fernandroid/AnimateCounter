@@ -1,0 +1,58 @@
+
+1) Nel Builder:
+
+private ValueAnimator mAnimatorRandomNumber;
+private Interpolator mRandomInterpolator = null;
+private int mRandomNumber;
+private ArrayList<Integer> exclude=new ArrayList<Integer>();
+
+
+public Builder  setRandomNumber(@Nullable Interpolator interpolator, ArrayList<Integer> exclude){
+mRandomInterpolator=interpolator;
+mRandomNumber=getRandomNumber(mStartValue,mEndValue,exclude);
+return this;
+}
+
+
+2) In execute:
+
+public void execute(){ 
+
+		    // Animation for the initial counter
+
+          mValueAnimator = ValueAnimator.ofFloat(mStartValue, mEndValue); 
+          mValueAnimator.setDuration(mDuration); 
+          mValueAnimator.setInterpolator(mInterpolator); 
+          mValueAnimator.setRepeatCount(mRepeatCount); 
+          mValueAnimator.setRepeatMode(mRepeatMode); 
+
+		  // Animation for the random counter 	
+
+		  mAnimatorRandomNumber=ValueAnimator.ofFloat(mStartValue, mRandomNumber); 
+			mAnimatorRandomNumber.setDuration(mDuration);
+      mAnimatorRandomNumber.setInterpolator(mRandomInterpolator); 
+      
+		  AnimatorSet animatorSet = new AnimatorSet();
+			animatorSet.play(mAnimatorRandomNumber).after(mValueAnimator);
+
+      animatorSet.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() { 
+              @Override 
+              public void onAnimationUpdate(ValueAnimator valueAnimator) { 
+              float current = Float.valueOf(valueAnimator.getAnimatedValue().toString()); 
+                  mView.setText(String.format("%." + mPrecision + "f", current)); 
+              } 
+       }); 
+
+          animatorSet.addListener(new AnimatorListenerAdapter() { 
+              @Override 
+              public void onAnimationEnd(Animator animation) { 
+                  if (mListener != null) { 
+                      mListener.onAnimateCounterEnd(); 
+                  } 
+              } 
+          }); 
+
+          animatorSet.start(); 
+
+
+      } 
