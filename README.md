@@ -1,2 +1,2 @@
 # AnimateCounter
-Example to animate numbers in TextView with ValueAnimator and Interpolators.
+Example of animated numbers in TextView by ValueAnimator and Interpolators.
