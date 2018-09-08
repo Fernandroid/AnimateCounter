@@ -262,6 +262,12 @@ public class AnimateCounter {
             return this;
         }
 
+        /**
+         * Set the RepeatMode to be used with the animation
+         *
+         * @param exclude Optional exclude numbers not to be drawn.
+         * @return This Builder object to allow for chaining of calls to set methods
+         */
         public Builder setExcludeNumber(ArrayList<Integer> exclude) {
             mExclude = exclude;
             return this;
