@@ -128,6 +128,7 @@ public class AnimateCounter {
             }
         });
 
+        //Coordinate the two animations
         AnimatorSet animatorSet = new AnimatorSet();
         animatorSet.play(mAnimatorRandomNumber).after(mValueAnimator);
 
@@ -219,7 +220,7 @@ public class AnimateCounter {
         }
 
         /**
-         * Set the interpolator to be used with the animation
+         * Set the interpolator to be used with the initial counter animation
          *
          * @param interpolator Optional interpolator to set
          * @return This Builder object to allow for chaining of calls to set methods
@@ -228,7 +229,12 @@ public class AnimateCounter {
             mInterpolator = interpolator;
             return this;
         }
-
+        /**
+         * Set the interpolator to be used with the random counter animation
+         *
+         * @param interpolator Optional interpolator to set
+         * @return This Builder object to allow for chaining of calls to set methods
+         */
         public Builder setRandomInterpolator(@Nullable Interpolator interpolator) {
             mRandomInterpolator = interpolator;
             return this;
