@@ -5,6 +5,10 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.animation.AnticipateOvershootInterpolator;
+import android.view.animation.Interpolator;
+import android.view.animation.LinearInterpolator;
+import android.view.animation.OvershootInterpolator;
 import android.widget.Button;
 import android.widget.TextView;
 
@@ -18,8 +22,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        final ArrayList<Integer>exclude=new ArrayList<Integer>();
-        exclude.add(5);
+      /*  final ArrayList<Integer> exclude = new ArrayList<Integer>();
+        exclude.add(5);*/
 
         /*
 
@@ -30,52 +34,23 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 TextView text = findViewById(R.id.tv_count);
-                int number=getRandomNumber(1,17,exclude);
+
                 AnimateCounter animateCounter = new AnimateCounter.Builder(text)
                         .setCount(1, 20)
                         .setDuration(5000)
-                        .setRepeatCount(3)
+                        .setRepeatCount(2)
+                        .setInterpolator(new LinearInterpolator())
                         .setRepeatMode(ValueAnimator.REVERSE)
+                        .setRandomInterpolator(new OvershootInterpolator())
+                        //.setExcludeNumber(exclude)
                         .build();
                 animateCounter.execute();
             }
         });
-        Button randomButton = findViewById(R.id.random_button);
-        randomButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                int number=getRandomNumber(1,20,exclude);
-                Log.i("MainActivity","random number: "+Integer.toString(number));
-                TextView text=findViewById(R.id.textView);
-                text.setText(Integer.toString(number));
-            }
-        });
+
     }
 
 
-    public int getRandomNumber(int min,
-                               int max, ArrayList<Integer> exclude) {
-        int r;
-        Random random = new Random();
-
-        if (exclude.size() != 0 || !exclude.isEmpty()) {
-            exclude.add(0);
-        }
-        int range = max - min;
-        if (range > 0) {
-            do {
-                r = random.nextInt(range + 1) + min;
-                Log.i("function","random number: "+Integer.toString(r));
-            } while (r < min || r > max || exclude.contains(r));
-            return r;
-        } else {  // range not representable as int
-            do {
-                r = random.nextInt();
-            } while (r < min || r > max || exclude.contains(r));
-            return r;
-
-        }
-    }
 }
 
 

@@ -2,11 +2,16 @@ package com.example.asus.animatecounter;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
+import android.animation.AnimatorSet;
 import android.animation.ValueAnimator;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.util.Log;
 import android.widget.TextView;
 import android.view.animation.Interpolator;
+
+import java.util.ArrayList;
+import java.util.Random;
 
 public class AnimateCounter {
 
@@ -21,15 +26,12 @@ public class AnimateCounter {
     /**
      * Initial value to start animation
      */
-    private float mStartValue;
+    private int mStartValue;
     /**
      * End value to finish animation
      */
-    private float mEndValue;
-    /**
-     * Decimal precision for floating point values
-     */
-    private int mPrecision;
+    private int mEndValue;
+
     /**
      * Interpolator functionality to apply to animation
      */
@@ -50,24 +52,86 @@ public class AnimateCounter {
      * Repeat mode when RepeatCount is >0. Repeat mode: RESTART or REVERSE
      */
     private int mRepeatMode;
+
+    private Interpolator mRandomInterpolator;
+    private ValueAnimator mAnimatorRandomNumber;
+    private int mRandomNumber;
+    private ArrayList<Integer> mExclude;
+
+    private AnimateCounter(Builder builder) {
+        mView = builder.mView;
+        mDuration = builder.mDuration;
+        mStartValue = builder.mStartValue;
+        mEndValue = builder.mEndValue;
+        mInterpolator = builder.mInterpolator;
+        mRepeatCount = builder.mRepeatCount;
+        mRepeatMode = builder.mRepeatMode;
+        mRandomInterpolator = builder.mRandomInterpolator;
+        mExclude = builder.mExclude;
+    }
+
+    public static int getRandomNumber(int min,
+                                      int max, ArrayList<Integer> exclude) {
+        int r;
+        Random random = new Random();
+
+        if (exclude.size() != 0 || !exclude.isEmpty()) {
+            exclude.add(0);
+        }
+        int range = max - min;
+        if (range > 0) {
+            do {
+                r = random.nextInt(range + 1) + min;
+                Log.i("function", "random number: " + Integer.toString(r));
+            } while (r < min || r > max || exclude.contains(r));
+            return r;
+        } else {  // range not representable as int
+            do {
+                r = random.nextInt();
+            } while (r < min || r > max || exclude.contains(r));
+            return r;
+
+        }
+    }
+
     /**
      * Call to execute the animation
      */
-    public void execute(){
-        mValueAnimator = ValueAnimator.ofFloat(mStartValue, mEndValue);
+    public void execute() {
+        // Get random number between mStartValue and mEndValue
+        mRandomNumber = AnimateCounter.getRandomNumber(mStartValue, mEndValue, mExclude);
+        Log.i("function", "end number: " + Integer.toString(mEndValue));
+        // Animation for the initial counter
+        mValueAnimator = ValueAnimator.ofInt(mStartValue, mEndValue);
         mValueAnimator.setDuration(mDuration);
         mValueAnimator.setInterpolator(mInterpolator);
         mValueAnimator.setRepeatCount(mRepeatCount);
         mValueAnimator.setRepeatMode(mRepeatMode);
+
         mValueAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
             @Override
             public void onAnimationUpdate(ValueAnimator valueAnimator) {
-                float current = Float.valueOf(valueAnimator.getAnimatedValue().toString());
-                mView.setText(String.format("%." + mPrecision + "f", current));
+                int current = (int)valueAnimator.getAnimatedValue();
+                mView.setText(String.valueOf(current));
             }
         });
 
-        mValueAnimator.addListener(new AnimatorListenerAdapter() {
+        // Animation for the random counter
+        mAnimatorRandomNumber = ValueAnimator.ofInt(mStartValue, mRandomNumber);
+        mAnimatorRandomNumber.setDuration(2000);
+        mAnimatorRandomNumber.setInterpolator(mRandomInterpolator);
+        mAnimatorRandomNumber.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator valueAnimator) {
+                int current = (int)valueAnimator.getAnimatedValue();
+                mView.setText(String.valueOf(current));
+            }
+        });
+
+        AnimatorSet animatorSet = new AnimatorSet();
+        animatorSet.play(mAnimatorRandomNumber).after(mValueAnimator);
+
+        animatorSet.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(Animator animation) {
                 if (mListener != null) {
@@ -76,18 +140,44 @@ public class AnimateCounter {
             }
         });
 
-        mValueAnimator.start();
+        animatorSet.start();
+    }
+
+    /**
+     * Stop the current animation
+     */
+    public void stop() {
+        if (mValueAnimator.isRunning()) {
+            mValueAnimator.cancel();
+        }
+    }
+
+    /**
+     * Set a listener to get notification of completion of animation
+     *
+     * @param listener AnimationCounterListener to be used for callbacks
+     */
+    public void setAnimateCounterListener(AnimateCounterListener listener) {
+        mListener = listener;
+    }
+
+    /**
+     * Callback interface for notification of animation end
+     */
+    public interface AnimateCounterListener {
+        void onAnimateCounterEnd();
     }
 
     public static class Builder {
         private long mDuration = 2000;
-        private float mStartValue = 0;
-        private float mEndValue = 10;
-        private int mPrecision = 0;
+        private int mStartValue = 0;
+        private int mEndValue = 10;
         private Interpolator mInterpolator = null;
         private TextView mView;
-        private int mRepeatCount=0;
-        private int mRepeatMode=ValueAnimator.RESTART;
+        private int mRepeatCount = 0;
+        private int mRepeatMode = ValueAnimator.RESTART;
+        private Interpolator mRandomInterpolator = null;
+        private ArrayList<Integer> mExclude = new ArrayList<Integer>();
 
 
         public Builder(@NonNull TextView view) {
@@ -101,38 +191,16 @@ public class AnimateCounter {
          * Set the start and end integers to be animated
          *
          * @param start initial value
-         * @param end final value
+         * @param end   final value
          * @return This Builder object to allow for chaining of calls to set methods
          */
-        public Builder setCount(final int start, final int end) {
+        public Builder setCount( int start, int end) {
             if (start == end) {
                 throw new IllegalArgumentException("Count start and end must be different");
             }
 
             mStartValue = start;
             mEndValue = end;
-            mPrecision = 0;
-            return this;
-        }
-
-        /**
-         * Set the start and end floating point numbers to be animated
-         *
-         * @param start initial value
-         * @param end final value
-         * @param precision number of decimal places to use
-         * @return This Builder object to allow for chaining of calls to set methods
-         */
-        public Builder setCount(final float start, final float end, final int precision) {
-            if (Math.abs(start - end) < 0.001) {
-                throw new IllegalArgumentException("Count start and end must be different");
-            }
-            if (precision < 0) {
-                throw new IllegalArgumentException("Precision can't be negative");
-            }
-            mStartValue = start;
-            mEndValue = end;
-            mPrecision = precision;
             return this;
         }
 
@@ -161,26 +229,38 @@ public class AnimateCounter {
             return this;
         }
 
+        public Builder setRandomInterpolator(@Nullable Interpolator interpolator) {
+            mRandomInterpolator = interpolator;
+            return this;
+        }
+
         /**
          * Set the RepeatCount to repeat the animation
          *
          * @param times Optional number of times to repeat the animation to set
          * @return This Builder object to allow for chaining of calls to set methods
          */
-        public Builder setRepeatCount(int times){
-            mRepeatCount=times;
+        public Builder setRepeatCount(int times) {
+            mRepeatCount = times;
             return this;
         }
+
         /**
          * Set the RepeatMode to be used with the animation
          *
          * @param mode Optional repeat mode for the animation to set. Repeat mode: RESTART or REVERSE:
          * @return This Builder object to allow for chaining of calls to set methods
          */
-        public Builder setRepeatMode(int mode){
-            mRepeatMode=mode;
+        public Builder setRepeatMode(int mode) {
+            mRepeatMode = mode;
             return this;
         }
+
+        public Builder setExcludeNumber(ArrayList<Integer> exclude) {
+            mExclude = exclude;
+            return this;
+        }
+
         /**
          * Creates a {@link AnimateCounter} with the arguments supplied to this builder. It does not
          * {@link AnimateCounter#execute()} the AnimationCounter.
@@ -191,39 +271,5 @@ public class AnimateCounter {
         }
     }
 
-    private AnimateCounter(Builder builder) {
-        mView = builder.mView;
-        mDuration = builder.mDuration;
-        mStartValue = builder.mStartValue;
-        mEndValue = builder.mEndValue;
-        mPrecision = builder.mPrecision;
-        mInterpolator = builder.mInterpolator;
-        mRepeatCount=builder.mRepeatCount;
-        mRepeatMode=builder.mRepeatMode;
-    }
 
-    /**
-     * Stop the current animation
-     */
-    public void stop() {
-        if (mValueAnimator.isRunning()) {
-            mValueAnimator.cancel();
-        }
-    }
-
-    /**
-     * Set a listener to get notification of completion of animation
-     *
-     * @param listener AnimationCounterListener to be used for callbacks
-     */
-    public void setAnimateCounterListener(AnimateCounterListener listener) {
-        mListener = listener;
-    }
-
-    /**
-     * Callback interface for notification of animation end
-     */
-    public interface AnimateCounterListener {
-        void onAnimateCounterEnd();
-    }
 }
